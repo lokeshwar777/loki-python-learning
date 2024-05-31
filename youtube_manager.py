@@ -1,35 +1,29 @@
-import sqlite3
+# import pymongo
+# pymongo.MongoClient(MONGODB_URI+"ytmanager")
 
-con = sqlite3.connect("youtube_videos.db")
+from pymongo import MongoClient
+from bson import ObjectId
 
-cursor = con.cursor()
+client = MongoClient(MONGODB_URI+"ytmanager", tlsAllowInvalidCertificates=True) # not a good way to handle SSL certificate issue
 
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS videos (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            time TEXT NOT NULL
-    )
-''')
+db = client["ytmanager"]
+video_collection = db["videos"]
 
 def list_videos():
-    print('\n')
-    print('*' * 77)
-    cursor.execute("SELECT * FROM videos")
-    for row in cursor.fetchall():
-            print(row)
+    for video in video_collection.find():
+            print(f"ID: {video['_id']}, Name: {video['name']} and Time: {video['time']}")
 
 def add_video(new_video_name, new_video_duration):
-    cursor.execute("INSERT INTO videos (video_name, video_duration) VALUES (?, ?)", (new_video_name, new_video_duration))
-    con.commit()
+    video_collection.insert_one({new_video_name, new_video_duration})
 
 def update_video(video_id, new_video_name, new_video_duration):
-    cursor.execute("UPDATE videos SET name = ?, time = ? WHERE id = ?", (video_id, new_video_name, new_video_duration))
-    con.commit()
+    video_collection.update_one(
+        {'_id': ObjectId(video_id)},
+        {"$set": {"video_name": new_video_name, "video_duration": new_video_duration}}
+    )
 
 def delete_video(video_id):
-    cursor.execute("DELETE FROM videos WHERE id = ?", (video_id,))
-    con.commit()
+   video_collection.delete_one({'_id': ObjectId(video_id)})
 
 def main():
 
